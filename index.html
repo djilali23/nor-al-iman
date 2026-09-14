@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f3d3e">
+<meta name="description" content="نور الإيمان - مواقيت الصلاة والأذكار والأدعية">
+<title>نور الإيمان - مواقيت الصلاة والأذكار</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Traditional Arabic','Amiri','Segoe UI',sans-serif;color:#fff;min-height:100vh;padding:20px;position:relative}
+#bg-layer{position:fixed;inset:0;background-size:cover;background-position:center;background-color:#0f3d3e;z-index:-2;transition:background-image .5s ease}
+#bg-layer::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(15,61,62,.88),rgba(26,92,94,.88));z-index:-1}
+header{text-align:center;margin-bottom:25px}
+#site-logo{width:100px;height:100px;object-fit:contain;border-radius:50%;margin-bottom:10px}
+header h1{font-size:2.2em;margin-bottom:5px}
+header p{opacity:.85}
+nav{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:25px}
+nav button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:#fff;padding:10px 20px;border-radius:25px;cursor:pointer;font-size:1em;transition:.25s}
+nav button.active,nav button:hover{background:#d4af37;color:#0f3d3e;font-weight:bold}
+.section{display:none;max-width:900px;margin:0 auto}
+.section.active{display:block}
+.prayer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px;margin-top:20px}
+.prayer-card{background:rgba(255,255,255,.1);border-radius:15px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,.2)}
+.prayer-card.next{background:#d4af37;color:#0f3d3e}
+.prayer-card h3{margin-bottom:8px;font-size:1.1em}
+.prayer-card .time{font-size:1.6em;font-weight:bold}
+#location-info{text-align:center;margin-bottom:10px;opacity:.9}
+#manual-location{text-align:center;margin:10px 0}
+#city-input{padding:10px 15px;border-radius:20px;border:none;width:70%;max-width:320px;font:inherit}
+#search-city-btn{padding:10px 16px;border-radius:20px;background:#d4af37;color:#0f3d3e;border:none;cursor:pointer;font-weight:bold;font:inherit}
+#search-city-btn:disabled{opacity:.6;cursor:not-allowed}
+#hijri-date{text-align:center;font-size:1.2em;margin-bottom:15px;color:#d4af37}
+#countdown{text-align:center;font-size:1.3em;margin:15px 0;min-height:1.5em}
+.card{background:rgba(255,255,255,.08);border-right:4px solid #d4af37;padding:18px 20px;border-radius:10px;margin-bottom:15px;font-size:1.2em;line-height:2}
+.card .virtue{font-size:.75em;opacity:.75;margin-top:8px}
+.card .count{display:inline-block;margin-top:10px;background:#d4af37;color:#0f3d3e;padding:4px 12px;border-radius:15px;font-size:.7em;cursor:pointer;user-select:none}
+.card .count.done{cursor:default}
+.loading{text-align:center;padding:20px;opacity:.7}
+.error{text-align:center;padding:20px;border-radius:10px;background:rgba(160,0,0,.2)}
+footer{text-align:center;margin-top:40px;opacity:.6;font-size:.85em}
+@media(max-width:600px){
+ body{padding:12px}
+ header h1{font-size:1.8em}
+ #site-logo{width:80px;height:80px}
+ nav button{padding:8px 13px;font-size:.9em}
+ #city-input{width:100%;margin-bottom:8px}
+ #search-city-btn{width:100%}
+ .card{font-size:1.05em}
+}
+
+/* ===== Sidebar ===== */
+#menu-toggle{position:fixed;top:18px;right:18px;z-index:1001;width:48px;height:48px;border:0;border-radius:14px;background:rgba(15,61,62,.92);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+#menu-toggle span,#menu-toggle span:before,#menu-toggle span:after{display:block;width:24px;height:3px;background:#fff;border-radius:3px;position:relative;transition:.25s}
+#menu-toggle span:before,#menu-toggle span:after{content:"";position:absolute;right:0}
+#menu-toggle span:before{top:-8px} #menu-toggle span:after{top:8px}
+#menu-toggle.open span{background:transparent}
+#menu-toggle.open span:before{top:0;transform:rotate(45deg)}
+#menu-toggle.open span:after{top:0;transform:rotate(-45deg)}
+#side-menu{position:fixed;top:0;right:0;bottom:0;width:min(340px,88vw);z-index:1000;background:rgba(8,42,43,.98);box-shadow:-12px 0 35px rgba(0,0,0,.35);transform:translateX(105%);transition:transform .3s ease;display:flex;flex-direction:column;padding:78px 16px 16px;overflow-y:auto}
+#side-menu.open{transform:translateX(0)}
+#side-menu .menu-title{text-align:center;font-size:1.35rem;color:#d4af37;margin:0 0 14px;font-weight:bold}
+#side-menu .tab-btn{width:100%;text-align:right;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;padding:12px 15px;border-radius:12px;margin-bottom:8px;cursor:pointer;font:inherit;transition:.2s}
+#side-menu .tab-btn:hover,#side-menu .tab-btn.active{background:#d4af37;color:#0f3d3e;font-weight:bold}
+#side-menu .menu-spacer{flex:1;min-height:18px}
+#settings-btn{width:100%;padding:13px 15px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;cursor:pointer;font:inherit;text-align:right}
+#settings-btn:hover{background:rgba(212,175,55,.2)}
+#menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;opacity:0;pointer-events:none;transition:.25s}
+#menu-overlay.show{opacity:1;pointer-events:auto}
+header{padding-top:10px}
+#settings-modal{position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.6)}
+#settings-modal.show{display:flex}
+.settings-box{width:min(560px,100%);max-height:90vh;overflow:auto;background:#0b4547;color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.settings-box h2{color:#d4af37;margin-bottom:18px;text-align:center}
+.setting-row{background:rgba(255,255,255,.06);border-radius:12px;padding:14px;margin-bottom:12px}
+.setting-row label{display:block;margin-bottom:8px;font-weight:bold}
+.setting-row select,.setting-row input[type=range]{width:100%;font:inherit}
+.setting-row select{padding:9px;border-radius:9px;border:0}
+.setting-actions{display:flex;gap:10px;margin-top:16px}
+.setting-actions button{flex:1;padding:11px;border:0;border-radius:10px;cursor:pointer;font:inherit}
+#close-settings{background:#d4af37;color:#0f3d3e;font-weight:bold}
+#test-adhan{background:rgba(255,255,255,.12);color:#fff}
+.settings-note{font-size:.82rem;opacity:.72;line-height:1.7;margin-top:8px}
+body[data-font-size=large]{font-size:18px}
+body[data-font-size=xlarge]{font-size:20px}
+/* ===== ألوان المظهر ===== */
+body{
+  --page-text:#fff;
+  --panel-bg:rgba(255,255,255,.08);
+  --panel-border:rgba(255,255,255,.20);
+  --menu-bg:rgba(8,42,43,.98);
+  --accent:#d4af37;
+  --accent-text:#0f3d3e;
+  color:var(--page-text);
+}
+body[data-theme="default"]{
+  --page-text:#fff;
+  --panel-bg:rgba(255,255,255,.08);
+  --panel-border:rgba(255,255,255,.20);
+  --menu-bg:rgba(8,42,43,.98);
+  --accent:#d4af37;
+  --accent-text:#0f3d3e;
+}
+body[data-theme="dark"]{
+  --page-text:#f4f4f4;
+  --panel-bg:rgba(0,0,0,.28);
+  --panel-border:rgba(255,255,255,.14);
+  --menu-bg:rgba(8,15,16,.98);
+  --accent:#d4af37;
+  --accent-text:#111;
+}
+body[data-theme="light"]{
+  --page-text:#173c3d;
+  --panel-bg:rgba(255,255,255,.72);
+  --panel-border:rgba(23,60,61,.16);
+  --menu-bg:rgba(245,248,245,.98);
+  --accent:#b58b16;
+  --accent-text:#fff;
+}
+body[data-theme="light"] #bg-layer:after{
+  background:linear-gradient(135deg,rgba(245,248,245,.80),rgba(220,232,224,.82));
+}
+body[data-theme="dark"] #bg-layer:after{
+  background:linear-gradient(135deg,rgba(0,0,0,.90),rgba(10,35,36,.94));
+}
+body[data-theme="default"] #bg-layer:after{
+  background:linear-gradient(135deg,rgba(15,61,62,.88),rgba(26,92,94,.88));
+}
+
+/* عناصر تتبع المظهر */
+nav button{
+  background:var(--panel-bg);
+  border-color:var(--panel-border);
+  color:var(--page-text);
+}
+nav button.active,nav button:hover{
+  background:var(--accent);
+  color:var(--accent-text);
+}
+.prayer-card,.card{
+  background:var(--panel-bg);
+  border-color:var(--panel-border);
+  color:var(--page-text);
+}
+.prayer-card.next,.card .count{
+  background:var(--accent);
+  color:var(--accent-text);
+}
+#side-menu{
+  background:var(--menu-bg);
+}
+#side-menu .tab-btn,#settings-btn{
+  background:var(--panel-bg);
+  border-color:var(--panel-border);
+  color:var(--page-text);
+}
+#side-menu .tab-btn:hover,#side-menu .tab-btn.active{
+  background:var(--accent);
+  color:var(--accent-text);
+}
+.settings-box{
+  background:var(--menu-bg);
+  color:var(--page-text);
+}
+.settings-box h2,#hijri-date{
+  color:var(--accent);
+}
+body[data-theme="light"] .settings-box select,
+body[data-theme="light"] .settings-box input{
+  color:#173c3d;
+  background:#fff;
+}
+body[data-theme="dark"] .settings-box select,
+body[data-theme="dark"] .settings-box input{
+  color:#f4f4f4;
+  background:#182324;
+}
+@media(max-width:600px){#menu-toggle{top:12px;right:12px}#side-menu{width:88vw}}
+
+</style>
+</head>
+<body>
+<div id="bg-layer"></div>
+<header>
+<img src="logo.png" alt="نور الإيمان" id="site-logo">
+<h1>نور الإيمان</h1>
+<p>مواقيت الصلاة • الأذكار • الأدعية</p>
+</header>
+
+<button id="menu-toggle" aria-label="فتح القائمة" aria-expanded="false"><span></span></button>
+<div id="menu-overlay"></div>
+<aside id="side-menu" aria-label="القائمة الرئيسية">
+  <div class="menu-title">نور الإيمان</div>
+  <button class="tab-btn active" data-tab="prayer">🕌 مواقيت الصلاة</button>
+  <button class="tab-btn" data-tab="morning">🌅 أذكار الصباح</button>
+  <button class="tab-btn" data-tab="evening">🌇 أذكار المساء</button>
+  <button class="tab-btn" data-tab="sleep">🌙 أذكار النوم</button>
+  <button class="tab-btn" data-tab="wake">☀️ أذكار الاستيقاظ</button>
+  <button class="tab-btn" data-tab="home">🏠 المنزل والمسجد</button>
+  <button class="tab-btn" data-tab="afterprayer">🤲 بعد الصلاة</button>
+  <button class="tab-btn" data-tab="tasbih">📿 تسابيح عظيمة</button>
+  <button class="tab-btn" data-tab="misc">✨ أذكار متفرقة</button>
+  <button class="tab-btn" data-tab="duas">📖 أدعية مختارة</button>
+  <button class="tab-btn" data-tab="jawami">🤍 جوامع الدعاء</button>
+  <div class="menu-spacer"></div>
+  <button id="settings-btn">⚙️ الإعدادات والتخصيص</button>
+</aside>
+
+<div id="settings-modal" aria-hidden="true">
+  <div class="settings-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <h2 id="settings-title">⚙️ تخصيص نور الإيمان</h2>
+    <div class="setting-row">
+      <label for="theme-select">مظهر الواجهة</label>
+      <select id="theme-select">
+        <option value="default">الأخضر الهادئ</option>
+        <option value="dark">داكن</option>
+        <option value="light">فاتح</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <label for="font-size-select">حجم الخط</label>
+      <select id="font-size-select">
+        <option value="normal">عادي</option>
+        <option value="large">كبير</option>
+        <option value="xlarge">كبير جدًا</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <label for="reader-select">صوت الأذان / القارئ</label>
+      <select id="reader-select">
+        <option value="default">الصوت الافتراضي</option>
+        <option value="muezzin1">القارئ 1</option>
+        <option value="muezzin2">القارئ 2</option>
+      </select>
+      <div class="settings-note">ملفات الأذان المستخدمة: adhan-madina.mp3 و adhan-makkah.mp3 و adhan-egypt.mp3 داخل مجلد <b>audio</b>.</div>
+    </div>
+    <div class="setting-row">
+      <label for="volume-range">مستوى الصوت: <span id="volume-value">80%</span></label>
+      <input id="volume-range" type="range" min="0" max="100" value="80">
+    </div>
+    <div class="setting-row">
+      <label><input id="adhan-enabled" type="checkbox" checked> تفعيل صوت الأذان عند حلول الوقت</label>
+      <div class="settings-note">قد يمنع المتصفح التشغيل التلقائي حتى يتفاعل المستخدم مع الصفحة مرة واحدة.</div>
+    </div>
+    <div class="setting-actions">
+      <button id="test-adhan" type="button">🔊 تجربة الصوت</button>
+      <button id="close-settings" type="button">حفظ وإغلاق</button>
+    </div>
+  </div>
+</div>
+
+<section id="prayer" class="section active">
+<div id="location-info">جاري تحديد الموقع...</div>
+<div id="manual-location">
+<input type="text" id="city-input" placeholder="اكتب اسم مدينتك (مثال: الجزائر، غليزان...)" autocomplete="off">
+<button id="search-city-btn" type="button">بحث</button>
+</div>
+<div id="hijri-date"></div>
+<div id="countdown"></div>
+<div class="prayer-grid" id="prayer-grid"><div class="loading">جاري تحميل المواقيت...</div></div>
+</section>
+<section id="morning" class="section"><div id="morning-list"></div></section>
+<section id="evening" class="section"><div id="evening-list"></div></section>
+<section id="sleep" class="section"><div id="sleep-list"></div></section>
+<section id="wake" class="section"><div id="wake-list"></div></section>
+<section id="home" class="section"><div id="home-list"></div></section>
+<section id="afterprayer" class="section"><div id="afterprayer-list"></div></section>
+<section id="tasbih" class="section"><div id="tasbih-list"></div></section>
+<section id="misc" class="section"><div id="misc-list"></div></section>
+<section id="duas" class="section"><div id="duas-list"></div></section>
+<section id="jawami" class="section"><div id="jawami-list"></div></section>
+
+<footer>تقبل الله منا ومنكم صالح الأعمال</footer>
+
+<script>
+'use strict';
+
+const tabBackgrounds={
+ prayer:'images/mosque.jpg', morning:'images/sunrise.jpg', evening:'images/sunset.jpg',
+ sleep:'images/night.jpg', wake:'images/dawn.jpg', home:'images/home.jpg',
+ afterprayer:'images/prayer.jpg', tasbih:'images/pattern.jpg',
+ misc:'images/pattern.jpg', duas:'images/pattern.jpg', jawami:'images/pattern.jpg'
+};
+
+const prayerNames={Fajr:'الفجر',Sunrise:'الشروق',Dhuhr:'الظهر',Asr:'العصر',Maghrib:'المغرب',Isha:'العشاء'};
+const PRAYER_ORDER=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
+const API='https://api.aladhan.com/v1/timings';
+const NOMINATIM='https://nominatim.openstreetmap.org/search';
+
+let countdownInterval=null;
+let currentTimeZone=null;
+
+function setBackground(tab){
+ const path=tabBackgrounds[tab];
+ if(path) document.getElementById('bg-layer').style.backgroundImage=`url("${path}")`;
+}
+
+const menuToggle=document.getElementById('menu-toggle');
+const sideMenu=document.getElementById('side-menu');
+const menuOverlay=document.getElementById('menu-overlay');
+const settingsModal=document.getElementById('settings-modal');
+
+function openMenu(){sideMenu.classList.add('open');menuOverlay.classList.add('show');menuToggle.classList.add('open');menuToggle.setAttribute('aria-expanded','true')}
+function closeMenu(){sideMenu.classList.remove('open');menuOverlay.classList.remove('show');menuToggle.classList.remove('open');menuToggle.setAttribute('aria-expanded','false')}
+menuToggle.addEventListener('click',()=>sideMenu.classList.contains('open')?closeMenu():openMenu());
+menuOverlay.addEventListener('click',closeMenu);
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll(`.tab-btn[data-tab="${btn.dataset.tab}"]`).forEach(b=>b.classList.add('active'));
+  document.getElementById(btn.dataset.tab)?.classList.add('active');
+  setBackground(btn.dataset.tab);
+  closeMenu();
+  window.scrollTo({top:0,behavior:'smooth'});
+ });
+});
+setBackground('prayer');
+
+/* ===== التخصيص ===== */
+const settingsKey='nour-aliman-settings-v2';
+const defaults={theme:'default',fontSize:'normal',reader:'default',volume:80,adhanEnabled:true};
+let appSettings={...defaults};
+try{appSettings={...defaults,...JSON.parse(localStorage.getItem(settingsKey)||'{}')}}catch{}
+
+const themeSelect=document.getElementById('theme-select');
+const fontSizeSelect=document.getElementById('font-size-select');
+const readerSelect=document.getElementById('reader-select');
+const volumeRange=document.getElementById('volume-range');
+const volumeValue=document.getElementById('volume-value');
+const adhanEnabled=document.getElementById('adhan-enabled');
+
+function applySettings(){
+ document.body.dataset.theme=appSettings.theme;
+ document.body.dataset.fontSize=appSettings.fontSize;
+ themeSelect.value=appSettings.theme;
+ fontSizeSelect.value=appSettings.fontSize;
+ readerSelect.value=appSettings.reader;
+ volumeRange.value=appSettings.volume;
+ volumeValue.textContent=appSettings.volume+'%';
+ adhanEnabled.checked=!!appSettings.adhanEnabled;
+}
+function saveSettings(){
+ appSettings={theme:themeSelect.value,fontSize:fontSizeSelect.value,reader:readerSelect.value,volume:Number(volumeRange.value),adhanEnabled:adhanEnabled.checked};
+ localStorage.setItem(settingsKey,JSON.stringify(appSettings));
+ applySettings();
+}
+function openSettings(){settingsModal.classList.add('show');settingsModal.setAttribute('aria-hidden','false');applySettings()}
+function closeSettings(){settingsModal.classList.remove('show');settingsModal.setAttribute('aria-hidden','true')}
+document.getElementById('settings-btn').addEventListener('click',()=>{closeMenu();openSettings()});
+document.getElementById('close-settings').addEventListener('click',()=>{saveSettings();closeSettings()});
+settingsModal.addEventListener('click',e=>{if(e.target===settingsModal)closeSettings()});
+themeSelect.addEventListener('change',()=>{
+  appSettings.theme=themeSelect.value;
+  applySettings();
+});
+fontSizeSelect.addEventListener('change',()=>{
+  appSettings.fontSize=fontSizeSelect.value;
+  applySettings();
+});
+volumeRange.addEventListener('input',()=>{
+  volumeValue.textContent=volumeRange.value+'%';
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenu();closeSettings()}});
+
+/* تطبيق الإعدادات المحفوظة فور فتح الموقع */
+applySettings();
+
+const adhanAudio=new Audio();
+adhanAudio.preload='auto';
+function getAdhanSource(){
+ const files={default:'audio/adhan-madina.mp3',muezzin1:'audio/adhan-makkah.mp3',muezzin2:'audio/adhan-egypt.mp3'};
+ return files[appSettings.reader]||files.default;
+}
+function playAdhan(){
+ if(!appSettings.adhanEnabled)return;
+ adhanAudio.src=getAdhanSource();
+ adhanAudio.volume=appSettings.volume/100;
+ adhanAudio.play().catch(err=>console.warn('تعذر تشغيل الأذان تلقائياً:',err));
+}
+document.getElementById('test-adhan').addEventListener('click',()=>{
+ saveSettings();
+ adhanAudio.pause(); adhanAudio.currentTime=0;
+ adhanAudio.src=getAdhanSource(); adhanAudio.volume=appSettings.volume/100;
+ adhanAudio.play().catch(()=>alert('تأكد من وجود ملف الصوت داخل مجلد audio.'));
+});
+applySettings();
+
+/* ===== الوقت ومواقيت الصلاة =====
+   نستخدم "ساعة افتراضية" مبنية على UTC لتمثيل الوقت المحلي للمدينة.
+   بهذه الطريقة لا يتأثر حساب العدّاد بفارق المنطقة الزمنية أو إعدادات ساعة الجهاز.
+*/
+function getZonedParts(timeZone, date=new Date()){
+ try{
+  const parts=new Intl.DateTimeFormat('en-GB',{
+   timeZone,
+   hourCycle:'h23',
+   year:'numeric',month:'2-digit',day:'2-digit',
+   hour:'2-digit',minute:'2-digit',second:'2-digit'
+  }).formatToParts(date);
+  const o={};
+  parts.forEach(p=>{if(p.type!=='literal') o[p.type]=p.value});
+  return {
+   year:Number(o.year),month:Number(o.month),day:Number(o.day),
+   hour:Number(o.hour),minute:Number(o.minute),second:Number(o.second)
+  };
+ }catch(error){
+  console.warn('تعذر قراءة المنطقة الزمنية:',error);
+  const d=new Date();
+  return {year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),minute:d.getMinutes(),second:d.getSeconds()};
+ }
+}
+
+function getClockDate(timeZone){
+ const p=getZonedParts(timeZone);
+ /* مهم: UTC هنا يمثل "الساعة المحلية للمدينة" وليس التوقيت العالمي الحقيقي.
+    نستخدمه فقط للمقارنة بين الآن وموعد الصلاة داخل نفس المنطقة الزمنية. */
+ return new Date(Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second));
+}
+
+function parsePrayerTime(timeStr,timeZone){
+ const match=String(timeStr).match(/^(\d{1,2}):(\d{2})/);
+ if(!match) return null;
+ const h=Number(match[1]);
+ const m=Number(match[2]);
+ const now=getZonedParts(timeZone);
+ return new Date(Date.UTC(now.year,now.month-1,now.day,h,m,0));
+}
+
+function formatPrayerTime(timeStr){
+ const match=String(timeStr).match(/^(\d{1,2}):(\d{2})/);
+ if(!match) return String(timeStr);
+ const h=Number(match[1]);
+ const m=Number(match[2]);
+ return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+async function loadPrayerTimes(lat,lon,cityLabel){
+ clearInterval(countdownInterval);
+ document.getElementById('countdown').textContent='جاري حساب الصلاة القادمة...';
+ document.getElementById('prayer-grid').innerHTML='<div class="loading">جاري تحميل المواقيت...</div>';
+
+ try{
+  const url=new URL(API);
+  url.searchParams.set('latitude',lat);
+  url.searchParams.set('longitude',lon);
+  url.searchParams.set('method','3');
+
+  const response=await fetch(url,{headers:{Accept:'application/json'}});
+  if(!response.ok) throw new Error(`Prayer API HTTP ${response.status}`);
+  const data=await response.json();
+
+  if(data.code!==200 || !data.data?.timings) throw new Error('Invalid prayer API response');
+
+  const t=data.data.timings;
+  const hijri=data.data.date?.hijri;
+  currentTimeZone=data.data.meta?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  document.getElementById('location-info').textContent=cityLabel;
+  if(hijri){
+   document.getElementById('hijri-date').textContent=`${hijri.day} ${hijri.month?.ar||hijri.month?.en||''} ${hijri.year} هـ`;
+  }
+
+  const grid=document.getElementById('prayer-grid');
+  grid.innerHTML='';
+  const now=getClockDate(currentTimeZone);
+  let nextPrayer=null;
+
+  PRAYER_ORDER.forEach(key=>{
+   if(!t[key]) return;
+   const timeStr=formatPrayerTime(t[key]);
+   const prayerDate=parsePrayerTime(timeStr,currentTimeZone);
+   if(!prayerDate) return;
+   const card=document.createElement('div');
+   card.className='prayer-card';
+
+   const h3=document.createElement('h3');
+   h3.textContent=prayerNames[key];
+   const time=document.createElement('div');
+   time.className='time';
+   time.textContent=timeStr;
+   card.append(h3,time);
+
+   if(!nextPrayer && prayerDate>now && key!=='Sunrise'){
+    nextPrayer={name:prayerNames[key],date:prayerDate};
+    card.classList.add('next');
+   }
+   grid.appendChild(card);
+  });
+
+  if(nextPrayer) startCountdown(nextPrayer);
+  else document.getElementById('countdown').textContent='انتهت صلوات اليوم، بانتظار فجر الغد 🌙';
+ }catch(error){
+  console.error(error);
+  document.getElementById('prayer-grid').innerHTML='<div class="error">تعذر تحميل المواقيت. تحقق من الاتصال بالإنترنت ثم حاول مرة أخرى.</div>';
+  document.getElementById('countdown').textContent='';
+ }
+}
+
+function startCountdown(next){
+ clearInterval(countdownInterval);
+ const update=()=>{
+  const diff=next.date-getClockDate(currentTimeZone);
+  if(diff<=0){
+   clearInterval(countdownInterval);
+   playAdhan();
+   loadPrayerTimes(window.currentLat,window.currentLon,window.currentCityLabel);
+   return;
+  }
+  const h=Math.floor(diff/3600000);
+  const m=Math.floor((diff%3600000)/60000);
+  const s=Math.floor((diff%60000)/1000);
+  document.getElementById('countdown').textContent=`⏳ الوقت المتبقي لصلاة ${next.name}: ${h}س ${m}د ${s}ث`;
+ };
+ update();
+ countdownInterval=setInterval(update,1000);
+}
+
+window.currentLat=null;
+window.currentLon=null;
+window.currentCityLabel='';
+
+function useLocation(lat,lon,label){
+ window.currentLat=Number(lat);
+ window.currentLon=Number(lon);
+ window.currentCityLabel=label;
+ loadPrayerTimes(window.currentLat,window.currentLon,label);
+}
+
+function initLocation(){
+ if(!navigator.geolocation){
+  document.getElementById('location-info').textContent='تعذر استخدام تحديد الموقع. اكتب مدينتك يدويًا.';
+  return;
+ }
+ navigator.geolocation.getCurrentPosition(
+  pos=>useLocation(pos.coords.latitude,pos.coords.longitude,'📍 موقعك الحالي'),
+  ()=>{
+   document.getElementById('location-info').textContent='لم يتم السماح بتحديد الموقع. اكتب مدينتك للمتابعة.';
+   document.getElementById('prayer-grid').innerHTML='<div class="loading">اختر مدينتك من مربع البحث أعلاه.</div>';
+  },
+  {enableHighAccuracy:true,timeout:10000,maximumAge:300000}
+ );
+}
+
+async function searchCity(){
+ const input=document.getElementById('city-input');
+ const btn=document.getElementById('search-city-btn');
+ const city=input.value.trim();
+ if(!city) return;
+
+ btn.disabled=true;
+ document.getElementById('location-info').textContent='جاري البحث عن المدينة...';
+
+ try{
+  const url=new URL(NOMINATIM);
+  url.searchParams.set('q',city);
+  url.searchParams.set('format','jsonv2');
+  url.searchParams.set('limit','1');
+  url.searchParams.set('countrycodes','dz');
+  url.searchParams.set('accept-language','ar');
+
+  const response=await fetch(url,{headers:{Accept:'application/json'}});
+  if(!response.ok) throw new Error(`Geocoding HTTP ${response.status}`);
+  const geoData=await response.json();
+
+  if(!Array.isArray(geoData)||geoData.length===0){
+   document.getElementById('location-info').textContent='لم يتم العثور على المدينة داخل الجزائر، حاول كتابة اسم آخر.';
+   return;
+  }
+
+  const place=geoData[0];
+  const label=`📍 ${place.display_name.split(',')[0]}`;
+  useLocation(place.lat,place.lon,label);
+ }catch(error){
+  console.error(error);
+  document.getElementById('location-info').textContent='حدث خطأ أثناء البحث. تحقق من الاتصال بالإنترنت.';
+ }finally{
+  btn.disabled=false;
+ }
+}
+
+document.getElementById('search-city-btn').addEventListener('click',searchCity);
+document.getElementById('city-input').addEventListener('keydown',e=>{
+ if(e.key==='Enter') searchCity();
+});
+
+function renderList(containerId,items){
+ const container=document.getElementById(containerId);
+ container.innerHTML='';
+ items.forEach((item,index)=>{
+  const div=document.createElement('div');
+  div.className='card';
+
+  const p=document.createElement('p');
+  p.textContent=item.text;
+  div.appendChild(p);
+
+  if(item.virtue){
+   const virtue=document.createElement('p');
+   virtue.className='virtue';
+   virtue.textContent=item.virtue;
+   div.appendChild(virtue);
+  }
+
+  if(Number.isFinite(Number(item.count)) && Number(item.count)>0){
+   const target=Number(item.count);
+   const key=`adhkar-${containerId}-${index}`;
+   let current=Number(localStorage.getItem(key)||0);
+   current=Math.min(current,target);
+
+   const count=document.createElement('div');
+   count.className='count';
+   count.dataset.target=String(target);
+   count.dataset.current=String(current);
+   updateCounter(count);
+
+   count.addEventListener('click',()=>{
+    if(Number(count.dataset.current)>=target) return;
+    const next=Number(count.dataset.current)+1;
+    count.dataset.current=String(next);
+    localStorage.setItem(key,String(next));
+    updateCounter(count);
+   });
+   div.appendChild(count);
+  }
+  container.appendChild(div);
+ });
+}
+
+function updateCounter(el){
+ const current=Number(el.dataset.current);
+ const target=Number(el.dataset.target);
+ if(current>=target){
+  el.textContent='✅ تم';
+  el.classList.add('done');
+ }else{
+  el.textContent=current===0?`اضغط للعد (${target}×)`: `${target-current} متبقية`;
+  el.classList.remove('done');
+ }
+}
+
+const morningAdhkar = [
+  {text:"آيَةُ الْكُرْسِيِّ: اللّهُ لاَ إِلَـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ لاَ تَأْخُذُهُ سِنَةٌ وَلاَ نَوْمٌ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الأَرْضِ مَن ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلاَّ بِإِذْنِهِ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ وَلاَ يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلاَّ بِمَا شَاء وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالأَرْضَ وَلاَ يَؤُودُهُ حِفْظُهُمَا وَهُوَ الْعَلِيُّ الْعَظِيمُ", virtue:"من قالها حين يصبح أجير من الجن حتى يمسي، ومن قالها حين يمسي أجير من الجن حتى يصبح.", count:1},
+  {text:"بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم، قُلْ هُوَ اللَّهُ أَحَدٌ، اللَّهُ الصَّمَدُ، لَمْ يَلِدْ وَلَمْ يُولَدْ، وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ", virtue:"من قالها حين يصبح وحين يمسي كفته من كل شيء.", count:3},
+  {text:"بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ، مِنْ شَرِّ مَا خَلَقَ، وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ، وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ، وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ", count:3},
+  {text:"بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ النَّاسِ، مَلِكِ النَّاسِ، إِلَهِ النَّاسِ، مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ، الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ، مِنَ الْجِنَّةِ وَالنَّاسِ", count:3},
+  {text:"أَصْبَحْنا وَأَصْبَحَ المُلْكُ لله وَالحَمدُ لله، لا إلهَ إلاّ اللّهُ وَحدَهُ لا شَريكَ لهُ، لهُ المُلكُ ولهُ الحَمْد، وهُوَ على كلّ شَيءٍ قدير، رَبِّ أسْأَلُكَ خَيرَ ما في هـذا اليوم وَخَيرَ ما بَعْدَه، وَأَعوذُ بِكَ مِنْ شَرِّ ما في هـذا اليوم وَشَرِّ ما بَعْدَه، رَبِّ أَعوذُ بِكَ مِنَ الْكَسَلِ وَسوءِ الْكِبَر، رَبِّ أَعوذُ بِكَ مِنْ عَذابٍ في النّارِ وَعَذابٍ في القَبْر", count:1},
+  {text:"اللّهـمَّ أَنْتَ رَبِّـي لا إلهَ إلاّ أَنْتَ، خَلَقْتَنـي وَأَنا عَبْدُك، وَأَنا عَلـى عَهْدِكَ وَوَعْدِكَ ما اسْتَطَعْت، أَعوذُ بِكَ مِنْ شَرِّ ما صَنَعْت، أَبوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ وَأَبوءُ بِذَنْبي فَاغْفـِرْ لي فَإِنَّـهُ لا يَغْفِرُ الذُّنوبَ إِلاّ أَنْتَ", virtue:"سيد الاستغفار: من قالها موقناً بها حين يمسي ومات من ليلته دخل الجنة، وكذلك حين يصبح.", count:1},
+  {text:"رَضيـتُ بِاللهِ رَبَّـاً وَبِالإسْلامِ ديـناً وَبِمُحَمَّدٍ صلى الله عليه وسلم نَبِيّـاً", virtue:"من قالها حين يصبح وحين يمسي كان حقاً على الله أن يرضيه يوم القيامة.", count:3},
+  {text:"اللّهُـمَّ إِنِّـي أَصْبَـحْتُ أُشْـهِدُك، وَأُشْهِدُ حَمَلَـةَ عَـرْشِـك، وَمَلَائِكَتَكَ، وَجَمـيعَ خَلْقِك، أَنَّـكَ أَنْتَ اللهُ لا إلهَ إلاّ أَنْتَ وَحْدَكَ لا شَريكَ لَـك، وَأَنَّ مُحَمّـداً عَبْدُكَ وَرَسـولُـك", virtue:"من قالها أعتقه الله من النار.", count:4},
+  {text:"اللّهُمَّ ما أَصْبَحَ بي مِنْ نِعْمَةٍ أَو بِأَحَدٍ مِنْ خَلْقِك، فَمِنْكَ وَحْدَكَ لا شريكَ لَك، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْر", virtue:"من قالها حين يصبح أدى شكر يومه.", count:1},
+  {text:"حَسْبِـيَ اللّهُ لا إلهَ إلاّ هُوَ عَلَـيهِ تَوَكَّـلتُ وَهُوَ رَبُّ العَرْشِ العَظـيم", virtue:"من قالها كفاه الله ما أهمه من أمر الدنيا والآخرة.", count:7},
+  {text:"بِسـمِ اللهِ الذي لا يَضُـرُّ مَعَ اسمِـهِ شَيءٌ في الأرْضِ وَلا في السّمـاءِ وَهـوَ السّمـيعُ العَلـيم", virtue:"لم يضره من الله شيء.", count:3},
+  {text:"اللّهُمَّ بِكَ أَصْبَحْنا وَبِكَ أَمْسَينا، وَبِكَ نَحْيا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُور", count:1},
+  {text:"أَصْبَحْـنا عَلَى فِطْرَةِ الإسْلاَمِ، وَعَلَى كَلِمَةِ الإِخْلاَصِ، وَعَلَى دِينِ نَبِيِّنَا مُحَمَّدٍ صَلَّى اللهُ عَلَيْهِ وَسَلَّمَ، وَعَلَى مِلَّةِ أَبِينَا إبْرَاهِيمَ حَنِيفاً مُسْلِماً وَمَا كَانَ مِنَ المُشْرِكِينَ", count:1},
+  {text:"سُبْحـانَ اللهِ وَبِحَمْـدِهِ عَدَدَ خَلْـقِه، وَرِضـا نَفْسِـه، وَزِنَـةَ عَـرْشِـه، وَمِـدادَ كَلِمـاتِـه", count:3},
+  {text:"اللّهُـمَّ عافِـني في بَدَنـي، اللّهُـمَّ عافِـني في سَمْـعي، اللّهُـمَّ عافِـني في بَصَـري، لا إلهَ إلاّ أَنْـتَ", count:3},
+  {text:"اللّهُـمَّ إِنّـي أَعـوذُ بِكَ مِنَ الْكُـفر، وَالفَـقْر، وَأَعـوذُ بِكَ مِنْ عَذابِ القَـبْر، لا إلهَ إلاّ أَنْـتَ", count:3},
+  {text:"اللّهُـمَّ إِنِّـي أسْـأَلُـكَ العَـفْوَ وَالعـافِـيةَ في الدُّنْـيا وَالآخِـرَة، اللّهُـمَّ إِنِّـي أسْـأَلُـكَ العَـفْوَ وَالعـافِـيةَ في ديني وَدُنْـيايَ وَأهْـلي وَمالـي، اللّهُـمَّ اسْتُـرْ عـوْراتي وَآمِـنْ رَوْعاتـي، اللّهُـمَّ احْفَظْـني مِن بَـينِ يَدَيَّ وَمِن خَلْفـي وَعَن يَمـيني وَعَن شِمـالي، وَمِن فَوْقـي، وَأَعوذُ بِعَظَمَـتِكَ أَن أُغْـتالَ مِن تَحْتـي", count:1},
+  {text:"يَا حَيُّ يَا قيُّومُ بِرَحْمَتِكَ أسْتَغِيثُ أصْلِحْ لِي شَأنِي كُلَّهُ وَلاَ تَكِلْنِي إلَى نَفْسِي طَـرْفَةَ عَيْنٍ", count:3},
+  {text:"أَصْبَحْـنا وَأَصْبَحْ المُلكُ للهِ رَبِّ العـالَمـين، اللّهُمَّ إِنِّـي أسْـأَلُـكَ خَـيْرَ هـذا الـيَوْم، فَـتْحَهُ، وَنَصْـرَهُ، وَنـورَهُ وَبَـرَكَتَهُ، وَهُدَاهُ، وَأَعوذُ بِكَ مِنْ شَرِّ ما فيهِ وَشَرِّ ما بَعْدَه", count:1},
+  {text:"اللّهُـمَّ عالِـمَ الغَـيْبِ وَالشّـهادَةِ فاطِـرَ السّماواتِ وَالأرْضِ رَبَّ كـلِّ شَيءٍ وَمَليـكَه، أَشْهَـدُ أَنْ لا إِلـهَ إِلاّ أَنْت، أَعوذُ بِكَ مِن شَرِّ نَفْسـي وَمِن شَرِّ الشَّيْـطانِ وَشِرْكِهِ، وَأَنْ أَقْتَـرِفَ عَلـى نَفْسـي سوءاً أَوْ أَجُـرَّهُ إِلـى مُسْـلِم", count:1},
+  {text:"أَعوذُ بِكَلِمـاتِ اللّهِ التّـامّـاتِ مِنْ شَرِّ ما خَلَـق", count:3},
+  {text:"اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ على نَبِيِّنَا مُحمَّد", virtue:"من صلى علي حين يصبح وحين يمسي أدركته شفاعتي يوم القيامة.", count:10},
+  {text:"اللَّهُمَّ إِنَّا نَعُوذُ بِكَ مِنْ أَنْ نُشْرِكَ بِكَ شَيْئًا نَعْلَمُهُ، وَنَسْتَغْفِرُكَ لِمَا لَا نَعْلَمُهُ", count:3},
+  {text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ الْهَمِّ وَالْحَزَنِ، وَأَعُوذُ بِكَ مِنْ الْعَجْزِ وَالْكَسَلِ، وَأَعُوذُ بِكَ مِنْ الْجُبْنِ وَالْبُخْلِ، وَأَعُوذُ بِكَ مِنْ غَلَبَةِ الدَّيْنِ، وَقَهْرِ الرِّجَالِ", count:3},
+  {text:"أسْتَغْفِرُ اللهَ العَظِيمَ الَّذِي لاَ إلَهَ إلاَّ هُوَ، الحَيُّ القَيُّومُ، وَأتُوبُ إلَيهِ", count:3},
+  {text:"يَا رَبِّ، لَكَ الْحَمْدُ كَمَا يَنْبَغِي لِجَلَالِ وَجْهِكَ، وَلِعَظِيمِ سُلْطَانِكَ", count:3},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا", count:1},
+  {text:"اللَّهُمَّ أَنْتَ رَبِّي لا إِلَهَ إِلا أَنْتَ، عَلَيْكَ تَوَكَّلْتُ، وَأَنْتَ رَبُّ الْعَرْشِ الْعَظِيمِ، مَا شَاءَ اللَّهُ كَانَ، وَمَا لَمْ يَشَأْ لَمْ يَكُنْ، وَلا حَوْلَ وَلا قُوَّةَ إِلا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ", count:1},
+  {text:"لَا إلَه إلّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءِ قَدِيرِ", virtue:"كانت له عدل عشر رقاب، وكتبت له مئة حسنة، ومحيت عنه مئة سيئة.", count:100},
+  {text:"سُبْحـانَ اللهِ وَبِحَمْـدِهِ", virtue:"حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ.", count:100},
+  {text:"أسْتَغْفِرُ اللهَ وَأتُوبُ إلَيْهِ", virtue:"مئة حسنة، ومُحيت عنه مئة سيئة، وكانت له حرزاً من الشيطان حتى يمسي.", count:100},
+];
+
+/* ===== أذكار المساء ===== */
+const eveningAdhkar = [
+  {text:"آيَةُ الْكُرْسِيِّ: اللّهُ لاَ إِلَـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ لاَ تَأْخُذُهُ سِنَةٌ وَلاَ نَوْمٌ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الأَرْضِ", virtue:"من قالها حين يمسي أجير من الجن حتى يصبح.", count:1},
+  {text:"بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم، قُلْ هُوَ اللَّهُ أَحَدٌ، اللَّهُ الصَّمَدُ، لَمْ يَلِدْ وَلَمْ يُولَدْ، وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ", virtue:"من قالها حين يمسي كفته من كل شيء.", count:3},
+  {text:"بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ، مِنْ شَرِّ مَا خَلَقَ", count:3},
+  {text:"بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ النَّاسِ، مَلِكِ النَّاسِ، إِلَهِ النَّاسِ", count:3},
+  {text:"أَمْسَيْـنا وَأَمْسـى المـلكُ لله وَالحَمدُ لله، لا إلهَ إلاّ اللّهُ وَحدَهُ لا شَريكَ لهُ، لهُ المُـلكُ ولهُ الحَمْـد، رَبِّ أسْـأَلُـكَ خَـيرَ ما في هـذهِ اللَّـيْلَةِ وَخَـيرَ ما بَعْـدَهـا", count:1},
+  {text:"اللّهـمَّ أَنْتَ رَبِّـي لا إلهَ إلاّ أَنْتَ، خَلَقْتَنـي وَأَنا عَبْـدُك، أَبـوءُ لَـكَ بِنِعْـمَتِـكَ عَلَـيَّ وَأَبـوءُ بِذَنْـبي فَاغْفـِرْ لي فَإِنَّـهُ لا يَغْـفِرُ الذُّنـوبَ إِلاّ أَنْتَ", virtue:"سيد الاستغفار: من قالها موقناً بها حين يمسي ومات من ليلته دخل الجنة.", count:1},
+  {text:"رَضيـتُ بِاللهِ رَبَّـاً وَبِالإسْلامِ ديـناً وَبِمُحَـمَّدٍ صلى الله عليه وسلم نَبِيّـاً", virtue:"من قالها حين يمسي كان حقاً على الله أن يرضيه يوم القيامة.", count:3},
+  {text:"اللّهُـمَّ إِنِّـي أَمسيتُ أُشْـهِدُك، وَأُشْـهِدُ حَمَلَـةَ عَـرْشِـك، وَمَلَائِكَتَكَ، وَجَمـيعَ خَلْـقِك، أَنَّ مُحَمّـداً عَبْـدُكَ وَرَسـولُـك", virtue:"من قالها أعتقه الله من النار.", count:4},
+  {text:"اللّهُـمَّ ما أَمسى بي مِـنْ نِعْـمَةٍ أَو بِأَحَـدٍ مِـنْ خَلْـقِك، فَمِـنْكَ وَحْـدَكَ لا شريكَ لَـك، فَلَـكَ الْحَمْـدُ وَلَـكَ الشُّكْـر", virtue:"من قالها حين يمسي أدى شكر يومه.", count:1},
+  {text:"حَسْبِـيَ اللّهُ لا إلهَ إلاّ هُوَ عَلَـيهِ تَوَكَّـلتُ وَهُوَ رَبُّ العَرْشِ العَظـيم", virtue:"من قالها كفاه الله ما أهمه من أمر الدنيا والآخرة.", count:7},
+  {text:"بِسـمِ اللهِ الذي لا يَضُـرُّ مَعَ اسمِـهِ شَيءٌ في الأرْضِ وَلا في السّمـاءِ وَهـوَ السّمـيعُ العَلـيم", virtue:"لم يضره من الله شيء.", count:3},
+  {text:"اللّهُـمَّ بِكَ أَمْسَـينا وَبِكَ أَصْـبَحْنا، وَبِكَ نَحْـيا وَبِكَ نَمُـوتُ وَإِلَـيْكَ الْمَصِيرُ", count:1},
+  {text:"أَمْسَيْنَا عَلَى فِطْرَةِ الإسْلاَمِ، وَعَلَى كَلِمَةِ الإِخْلاَصِ، وَعَلَى دِينِ نَبِيِّنَا مُحَمَّدٍ صَلَّى اللهُ عَلَيْهِ وَسَلَّمَ", count:1},
+  {text:"سُبْحـانَ اللهِ وَبِحَمْـدِهِ عَدَدَ خَلْـقِه، وَرِضـا نَفْسِـه، وَزِنَـةَ عَـرْشِـه، وَمِـدادَ كَلِمـاتِـه", count:3},
+  {text:"اللّهُـمَّ عافِـني في بَدَنـي، اللّهُـمَّ عافِـني في سَمْـعي، اللّهُـمَّ عافِـني في بَصَـري، لا إلهَ إلاّ أَنْـتَ", count:3},
+  {text:"اللّهُـمَّ إِنّـي أَعـوذُ بِكَ مِنَ الْكُـفر، وَالفَـقْر، وَأَعـوذُ بِكَ مِنْ عَذابِ القَـبْر، لا إلهَ إلاّ أَنْـتَ", count:3},
+  {text:"اللّهُـمَّ إِنِّـي أسْـأَلُـكَ العَـفْوَ وَالعـافِـيةَ في الدُّنْـيا وَالآخِـرَة، اللّهُـمَّ اسْتُـرْ عـوْراتي وَآمِـنْ رَوْعاتـي", count:1},
+  {text:"يَا حَيُّ يَا قيُّومُ بِرَحْمَتِكَ أسْتَغِيثُ أصْلِحْ لِي شَأنِي كُلَّهُ وَلاَ تَكِلْنِي إلَى نَفْسِي طَـرْفَةَ عَيْنٍ", count:3},
+  {text:"أَمْسَيْنا وَأَمْسَى الْمُلْكُ للهِ رَبِّ الْعَالَمَيْنِ، اللَّهُمَّ إِنَّي أسْأَلُكَ خَيْرَ هَذَه اللَّيْلَةِ فَتْحَهَا ونَصْرَهَا", count:1},
+  {text:"اللّهُـمَّ عالِـمَ الغَـيْبِ وَالشّـهادَةِ فاطِـرَ السّماواتِ وَالأرْضِ رَبَّ كـلِّ شَيءٍ وَمَليـكَه، أَشْهَـدُ أَنْ لا إِلـهَ إِلاّ أَنْت", count:1},
+  {text:"أَعوذُ بِكَلِمـاتِ اللّهِ التّـامّـاتِ مِنْ شَرِّ ما خَلَـق", count:3},
+  {text:"اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ على نَبِيِّنَا مُحمَّد", virtue:"من صلى علي حين يمسي أدركته شفاعتي يوم القيامة.", count:10},
+  {text:"اللَّهُمَّ إِنَّا نَعُوذُ بِكَ مِنْ أَنْ نُشْرِكَ بِكَ شَيْئًا نَعْلَمُهُ، وَنَسْتَغْفِرُكَ لِمَا لَا نَعْلَمُهُ", count:3},
+  {text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ الْهَمِّ وَالْحَزَنِ، وَأَعُوذُ بِكَ مِنْ الْعَجْزِ وَالْكَسَلِ، وَالْجُبْنِ وَالْبُخْلِ", count:3},
+  {text:"أسْتَغْفِرُ اللهَ العَظِيمَ الَّذِي لاَ إلَهَ إلاَّ هُوَ، الحَيُّ القَيُّومُ، وَأتُوبُ إلَيهِ", count:3},
+  {text:"يَا رَبِّ، لَكَ الْحَمْدُ كَمَا يَنْبَغِي لِجَلَالِ وَجْهِكَ، وَلِعَظِيمِ سُلْطَانِكَ", count:3},
+  {text:"لَا إلَه إلّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءِ قَدِيرِ", virtue:"كانت له عدل عشر رقاب، وكتبت له مئة حسنة.", count:100},
+  {text:"سُبْحـانَ اللهِ وَبِحَمْـدِهِ", virtue:"حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ.", count:100},
+];
+
+/* ===== أذكار النوم ===== */
+const sleepAdhkar = [
+  {text:"بِاسْمِكَ رَبِّـي وَضَعْـتُ جَنْـبي، وَبِكَ أَرْفَعُـه، فَإِن أَمْسَـكْتَ نَفْسـي فارْحَـمْها، وَإِنْ أَرْسَلْتَـها فاحْفَظْـها بِمـا تَحْفَـظُ بِه عِبـادَكَ الصّـالِحـين", count:1},
+  {text:"اللّهُـمَّ إِنَّـكَ خَلَـقْتَ نَفْسـي وَأَنْـتَ تَوَفّـاهـا لَكَ ممَـاتـها وَمَحْـياها، إِنْ أَحْيَيْـتَها فاحْفَظْـها، وَإِنْ أَمَتَّـها فَاغْفِـرْ لَـها. اللّهُـمَّ إِنِّـي أَسْـأَلُـكَ العـافِـيَة", count:1},
+  {text:"اللّهُـمَّ قِنـي عَذابَـكَ يَـوْمَ تَبْـعَثُ عِبـادَك", count:3},
+  {text:"بِاسْـمِكَ اللّهُـمَّ أَمـوتُ وَأَحْـيا", count:1},
+  {text:"الـحَمْدُ للهِ الَّذي أَطْـعَمَنا وَسَقـانا، وَكَفـانا، وَآوانا، فَكَـمْ مِمَّـنْ لا كـافِيَ لَـهُ وَلا مُـؤْوي", count:1},
+  {text:"اللّهُـمَّ عالِـمَ الغَـيبِ وَالشّـهادةِ فاطِـرَ السّماواتِ وَالأرْضِ رَبَّ كُـلِّ شَـيءٍ وَمَليـكَه، أَشْهـدُ أَنْ لا إِلـهَ إِلاّ أَنْت", count:1},
+  {text:"اللّهُـمَّ أَسْـلَمْتُ نَفْـسي إِلَـيْكَ، وَفَوَّضْـتُ أَمْـري إِلَـيْكَ، وَوَجَّـهْتُ وَجْـهي إِلَـيْكَ، وَأَلْـجَـاْتُ ظَهـري إِلَـيْكَ، رَغْبَـةً وَرَهْـبَةً إِلَـيْكَ، لا مَلْجَـأَ وَلا مَنْـجـا مِنْـكَ إِلاّ إِلَـيْكَ، آمَنْـتُ بِكِتـابِكَ الّـذي أَنْزَلْـتَ وَبِنَبِـيِّـكَ الّـذي أَرْسَلْـت", count:1},
+  {text:"سُبْحَانَ اللَّهِ", count:33},
+  {text:"الْحَمْدُ لِلَّهِ", count:33},
+  {text:"اللَّهُ أَكْبَرُ", count:34},
+  {text:"يجمع كفيه ثم ينفث فيهما ويقرأ: قل هو الله أحد، وقل أعوذ برب الفلق، وقل أعوذ برب الناس، ثم يمسح بهما ما استطاع من جسده يبدأ بهما على رأسه ووجهه وما أقبل من جسده", count:3},
+  {text:"عند القلق أو الأرق: اللَّهُمَّ رَبَّ السَّمَوَاتِ السَّبْعِ وَمَا أَظَلَّتْ، وَرَبَّ الْأَرَضِينَ وَمَا أَقَلَّتْ، وَرَبَّ الشَّيَاطِينِ وَمَا أَضَلَّتْ، كُنْ لِي جَارًا مِنْ خَلْقِكَ كُلِّهِمْ جَمِيعًا أَنْ يَفْرُطَ عَلَيَّ أَحَدٌ مِنْهُمْ", count:1},
+  {text:"عند الفزع: أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّةِ مِنْ غَضَبِهِ وَشَرِّ عِبَادِهِ، وَمِنْ هَمَزَاتِ الشَّيَاطِينِ وَأَنْ يَحْضُرُونِ", count:1},
+];
+
+/* ===== أذكار الاستيقاظ ===== */
+const wakeAdhkar = [
+  {text:"الحَمْـدُ لِلّهِ الّذي أَحْـيانا بَعْـدَ ما أَماتَـنا وَإليه النُّـشور", count:1},
+  {text:"الحمدُ للهِ الذي عافاني في جَسَدي وَرَدّ عَليّ روحي وَأَذِنَ لي بِذِكْرِه", count:1},
+  {text:"لا إلهَ إلاّ اللّهُ وَحْـدَهُ لا شَـريكَ له، لهُ المُلـكُ ولهُ الحَمـد، وهوَ على كلّ شيءٍ قدير، سُـبْحانَ اللهِ، والحمْـدُ لله، ولا إلهَ إلاّ اللهُ واللهُ أكبَر، وَلا حَولَ وَلا قوّة إلاّ باللّهِ العليّ العظيم. رَبِّ اغْفرْ لي", count:1},
+];
+
+/* ===== المنزل والمسجد ===== */
+const homeAdhkar = [
+  {text:"دخول المنزل: بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا", count:1},
+  {text:"الخروج من المنزل: بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ", count:1},
+  {text:"دخول المسجد: اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ", count:1},
+  {text:"الخروج من المسجد: اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ", count:1},
+  {text:"دعاء دخول السوق: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، يُحْيِي وَيُمِيتُ وَهُوَ حَيٌّ لَا يَمُوتُ، بِيَدِهِ الْخَيْرُ", count:1},
+  {text:"قبل الأكل: بِسْمِ اللَّهِ", count:1},
+  {text:"بعد الأكل: الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا، وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ", count:1},
+  {text:"دعاء السفر: اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ", count:1},
+];
+
+/* ===== بعد الصلاة ===== */
+const afterPrayerAdhkar = [
+  {text:"أَسْتَغْفِرُ اللَّهَ (ثلاثاً)، اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ", count:1},
+  {text:"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ", count:1},
+  {text:"سُبْحَانَ اللَّهِ", count:33},
+  {text:"الْحَمْدُ لِلَّهِ", count:33},
+  {text:"اللَّهُ أَكْبَرُ", count:33},
+  {text:"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ", count:1},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا", virtue:"بعد السلام من صلاة الفجر.", count:1},
+  {text:"اللَّهُمَّ أَجِرْنِي مِنْ النَّارِ", virtue:"بعد صلاة الصبح والمغرب.", count:7},
+  {text:"آيَةُ الْكُرْسِيِّ كاملة بعد كل صلاة مكتوبة", count:1},
+];
+
+/* ===== تسابيح عظيمة ===== */
+const tasbihAdhkar = [
+  {text:"سُبْحَانَ اللَّهِ", virtue:"يكتب له ألف حسنة أو يحط عنه ألف خطيئة.", count:100},
+  {text:"سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", virtue:"حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ.", count:100},
+  {text:"سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ", virtue:"تملآن ما بين السماوات والأرض.", count:100},
+  {text:"لَا إلَه إلّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءِ قَدِيرِ", virtue:"كانت له عدل عشر رقاب.", count:100},
+  {text:"لا حَوْلَ وَلا قُوَّةَ إِلا بِاللَّهِ", virtue:"كنز من كنوز الجنة.", count:100},
+  {text:"أستغفر الله", count:100},
+  {text:"اللَّهُ أَكْبَرُ", virtue:"من قالها كتبت له عشرون حسنة وحطت عنه عشرون سيئة.", count:100},
+  {text:"الْحَمْدُ للّهِ رَبِّ الْعَالَمِينَ", virtue:"تملأ ميزان العبد بالحسنات.", count:100},
+];
+
+/* ===== أذكار متفرقة ===== */
+const miscAdhkar = [
+  {text:"عند الكرب: لَا إِلَهَ إِلَّا اللَّهُ الْعَظِيمُ الْحَلِيمُ، لَا إِلَهَ إِلَّا اللَّهُ رَبُّ الْعَرْشِ الْعَظِيمِ", count:1},
+  {text:"عند الغضب: أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ", count:1},
+  {text:"عند رؤية ما يعجبه: مَا شَاءَ اللَّهُ لَا قُوَّةَ إِلَّا بِاللَّهِ", count:1},
+  {text:"عند المصيبة: إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ", count:1},
+];
+
+/* ===== أدعية مختارة (قرآنية) ===== */
+const duas = [
+  {text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ"},
+  {text:"رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي"},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَافِيَةَ فِي الدُّنْيَا وَالْآخِرَةِ"},
+  {text:"رَبِّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ يَوْمَ يَقُومُ الْحِسَابُ"},
+  {text:"اللَّهُمَّ اهْدِنِي وَسَدِّدْنِي"},
+  {text:"رَبَّنَا لاَ تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رَحْمَةً إِنَّكَ أَنتَ الْوَهَّابُ"},
+  {text:"رَبِّ زِدْنِي عِلْمًا"},
+];
+
+/* ===== جوامع الدعاء ===== */
+const jawamiDuas = [
+  {text:"اللَّهُمَّ يَا بَارِئَ البَرِيَّاتِ، وَغَافِرَ الخَطِيَّاتِ، وَعَالِمَ الخَفِيَّاتِ، اغْفِرْ لِي ذُنُوبِي، وَاسْتُرْ عُيُوبِيَ، وَتَجَاوَزْ عَنْ سَيِّئَاتِيَ"},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ بِاسْمِكَ الأَعْظَمِ، الَّذِي إِذَا دُعِيتَ بِهِ أَجَبْتَ، أَنْ تَغْفِرَ لِي ذُنُوبِي، إِنَّكَ أَنْتَ الغَفُورُ الرَّحِيمُ"},
+  {text:"اللَّهُمَّ اغْفِرْ لِي خَطِيئَتِي وَجَهْلِي، وَإِسْرَافِي فِي أَمْرِي، وَمَا أَنْتَ أَعْلَمُ بِهِ مِنّـِي"},
+  {text:"اللَّهُمَّ اغْفِرْ لِي ذَنْبِي كُلّهُ، دِقَّهُ وَجُلَّهُ، وَأَوَّلَهُ وَآخِرَهَ، وَعَلاَنِيَتَهَ وَسِرَّهُ"},
+  {text:"اللَّهُمَّ اغْفِرْ لِي مَا قَدَّمْتُ وَمَا أَخَّرْتُ، وَمَا أَعْلَنْتُ وَمَا أَسْرَرْتُ، أَنْتَ المُقَدِّمُ وَأَنْتَ المُؤَخِّرُ لا إِلَهَ إِلاَّ أَنْـتَ"},
+  {text:"اللَّهُمَّ إِنِّي ظَلَمْتُ نَفْسِي ظلْماً كَثِيراً، وَلا يَغْفِرُ الذُّنُوب إِلاَّ أَنْتَ، فَاغْفِرْ لِي مَغْفِرَةً مِنْ عِنْدَكَ"},
+  {text:"اللَّهُمَّ اهْدِنَا فِيمَنْ هَدَيْتَ، وَعَافِنَا فِيمَنْ عَافَيتَ، وَتَوَلَّنَا فِيمَنْ تَوَلَّيْتَ"},
+  {text:"اللَّهُمَّ أَرِنَا الحَقَّ حقَّاً وَارْزُقْنَا اتِّبَاعَهُ، وَأَرِنَا البَاطِلَ بَاطِلاً وَارْزُقْنَا اجْتِنَابَهُ"},
+  {text:"اللَّهُمَّ خُذْ بِنَوَاصِينَا لِِلْبِرِّ وَالتَّقْوَى، وَلِمَا تُحِبُّ مِنَ العَمَلِ وَتَرْضَى"},
+  {text:"اللَّهُمَّ اهْدِنِي وَسَدِّدْنِي، اللَّهُمَّ إِنِّي أَسْأَلُكَ الهُدَى وَالسَّدَادَ"},
+  {text:"اللَّهُمَّ ثَبِّتْنِي وَاجْعَلْنِي هَادِياً مَهْدِيّاً"},
+  {text:"اللَّهُمَّ جَلَّتْ قُدْرَتُكَ، وَتَعَالَتْ حِكْمَتُكَ، وَتَبَارَكَ اسْمُكَ، وَتَعَالَى جَدُّكَ، وَلا إِلَهَ غَيْرُكَ"},
+  {text:"اللَّهُمَّ رَبِّ لا تَذَرْنِي فَرْداً وَأَنْتَ خَيْرُ الْوَارِثِينَ"},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ الجَنَّة وَمَا قَرَّبَ إِلَيْهَا مِنْ قَوْلٍ وَعَمَلٍ، وَأَعُوذُ بِكَ مَنَ النَّارِ"},
+  {text:"اللَّهُمَّ أَحْسِنْ عَاقِبَتِنَا فِي الأُمُورِ كُلِّهَا، وَأَجِرْنَا مِنْ خِزْيِ الدُّنْيَا وَعَذَابِ الآخِرَةِ"},
+  {text:"اللَّهُمَّ حَاسِبْنِي حِسَاباً يَسِيراً"},
+  {text:"اللَّهُمَّ اغْسِلْ قَلْبِي بِمَاءِ الثَّلْجِ وَالْبَرَدِ، وَنَقِّ قَلْبِيَ مِنْ الخَطَايَا كَمَا نَقَّيْتَ الثَّوْبَ الأَبْيَضَ مِنَ الدَّنَسِ"},
+  {text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ العَجْزِ وَالكَسَلِ، وَالجُبْنِ، وَالبُخْلِ، وَالهَرَمِ، وَعَذَابِ القَبْرِ"},
+  {text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ أَنْ أَقُولَ زُوراً، أَوْ أَغْشَى فُجُوراً، أَوْ أَكُونَ بِكَ مَغْرُوراً"},
+  {text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الفَقْرِ وَالقِلَّةِ وَالذِّلَّةِ، وَأَعُوذُ بِكَ مِنْ أَنْ أَظْلِمَ أَوْ أُظْلَمَ"},
+  {text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ التَّـرَدِّي، وَالهَدْمِ، وَالغَرَقِ، وَالحَرْقِ"},
+  {text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ عُقُوقِ الأَبْنَاءِ، وَمِنْ قَطِيعَةِ الأَقْرِبَاءِ، وَمِنْ جَفْوَةِ الأَحْيَاءِ"},
+  {text:"اللَّهُمَّ يَاحَيُّ يَا قَيُّومُ، أَظِلَّنِي فِيْ ظِلِّ عَرْشِكَ يَوْمَ لا ظِلَّ إِلاَّ ظِلُّكَ"},
+  {text:"اللَّهُمَّ وَحِّدْ صَفَّهُم، وَاجْمَعْ كَلِمَتَهُم، وَرُدَّهُم إِلَيْكَ رَدَّاً جَمِيلاً"},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ المَسْأَلَةِ، وَخَيرَ الدُّعَاءِ، وَخَيرَ النَّجَاحِ، وَخَيرَ العَمَلِ"},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ أَنْ تَرْفَعَ ذِِكْرِي، وَتَضَعَ وِزْرِيَ، وَتُصْلِحَ أَمْرِيَ"},
+  {text:"اللَّهُمَّ بِعِلْمِكَ الغَيبِ، وَقُدْرَتِكَ عَلَى الخَلْقِ؛ أَحْيِنِي مَا عَلِمْتَ الحَيَاةَ خَيْراً لِي"},
+  {text:"اللَّهُمَّ لا تَدَعْ لَنَا ذَنْبًا إِلاَّ غَفَرْتَهُ، وَلا هَمًّا إِلاَّ فَرَّجْتَهُ، وَلا دَيْنًا إِلاَّ قَضَيْتَهُ"},
+  {text:"اللَّهُمَّ إِنَّا نَسْألكَ يُسْراً لَيْسَ بَعْدَهُ عُسْرٌ، وَغِنىً لَيْسَ بَعْدَهُ فَقْرٌ"},
+  {text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ كُلِّ خَيْرٍ خَزَائِنُهُ بِيَدِكَ، وَأَعُوذُ بِكَ مِنْ كُلِّ شَرٍّ خَزَائِنُهُ بِيَـدِكَ"},
+  {text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنَ عِبَادَتِكَ"},
+  {text:"اللَّهُمَّ رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ الَّتِي أَنْعَمْتَ عَلَيَّ وَعَلَى وَالِدَيَّ"},
+  {text:"اللَّهُمَّ قِنِي شَرَّ نَفْسِي، وَاعْزِمْ لِي عَلَى أَرْشَدِ أَمْرِي"},
+  {text:"اللَّهُمَّ أعِنَّا عَلَى شَهَوَاتِ أَنْفُسِنَا، وَقَسْوَةِ قُلُوبِنَا، وَضَعْفِ إِرَادَتِنَا"},
+];
+
+
+renderList('morning-list',morningAdhkar);
+renderList('evening-list',eveningAdhkar);
+renderList('sleep-list',sleepAdhkar);
+renderList('wake-list',wakeAdhkar);
+renderList('home-list',homeAdhkar);
+renderList('afterprayer-list',afterPrayerAdhkar);
+renderList('tasbih-list',tasbihAdhkar);
+renderList('misc-list',miscAdhkar);
+renderList('duas-list',duas);
+renderList('jawami-list',jawamiDuas);
+
+if('serviceWorker' in navigator){
+ window.addEventListener('load',()=>{
+  navigator.serviceWorker.register('sw.js').catch(err=>{
+   console.warn('Service Worker registration failed:',err);
+  });
+ });
+}
+
+initLocation();
+</script>
+
+<style>
+#installAppBtn{display:none;position:fixed;left:18px;bottom:18px;z-index:9999;border:0;border-radius:14px;padding:12px 16px;background:var(--accent,#0f766e);color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+</style>
+<button id="installAppBtn" type="button" aria-label="تثبيت نور الإيمان">📲 تثبيت التطبيق</button>
+<script>
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  const btn = document.getElementById('installAppBtn');
+  if (btn) btn.style.display = 'block';
+});
+document.addEventListener('click', async (event) => {
+  if (event.target && event.target.id === 'installAppBtn' && deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    event.target.style.display = 'none';
+  }
+});
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('installAppBtn');
+  if (btn) btn.style.display = 'none';
+});
+</script>
+
+</body>
+</html>
