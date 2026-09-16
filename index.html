@@ -235,7 +235,7 @@ body[data-theme="dark"] .settings-box input{
         <option value="muezzin1">القارئ 1</option>
         <option value="muezzin2">القارئ 2</option>
       </select>
-      <div class="settings-note">ضع ملفات الصوت داخل مجلد <b>audio</b> باسم: adhan-default.mp3 و adhan-muezzin1.mp3 و adhan-muezzin2.mp3.</div>
+      <div class="settings-note">ملفات الأذان المستخدمة: adhan-madina.mp3 و adhan-makkah.mp3 و adhan-egypt.mp3 داخل مجلد <b>audio</b>.</div>
     </div>
     <div class="setting-row">
       <label for="volume-range">مستوى الصوت: <span id="volume-value">80%</span></label>
@@ -390,22 +390,53 @@ document.getElementById('test-adhan').addEventListener('click',()=>{
 });
 applySettings();
 
-function getClockDate(timeZone){
+/* ===== الوقت ومواقيت الصلاة =====
+   نستخدم "ساعة افتراضية" مبنية على UTC لتمثيل الوقت المحلي للمدينة.
+   بهذه الطريقة لا يتأثر حساب العدّاد بفارق المنطقة الزمنية أو إعدادات ساعة الجهاز.
+*/
+function getZonedParts(timeZone, date=new Date()){
  try{
-  const parts=new Intl.DateTimeFormat('en-US',{
-   timeZone,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',
+  const parts=new Intl.DateTimeFormat('en-GB',{
+   timeZone,
+   hourCycle:'h23',
+   year:'numeric',month:'2-digit',day:'2-digit',
    hour:'2-digit',minute:'2-digit',second:'2-digit'
-  }).formatToParts(new Date());
-  const o=Object.fromEntries(parts.map(p=>[p.type,p.value]));
-  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
- }catch{return new Date();}
+  }).formatToParts(date);
+  const o={};
+  parts.forEach(p=>{if(p.type!=='literal') o[p.type]=p.value});
+  return {
+   year:Number(o.year),month:Number(o.month),day:Number(o.day),
+   hour:Number(o.hour),minute:Number(o.minute),second:Number(o.second)
+  };
+ }catch(error){
+  console.warn('تعذر قراءة المنطقة الزمنية:',error);
+  const d=new Date();
+  return {year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),minute:d.getMinutes(),second:d.getSeconds()};
+ }
+}
+
+function getClockDate(timeZone){
+ const p=getZonedParts(timeZone);
+ /* مهم: UTC هنا يمثل "الساعة المحلية للمدينة" وليس التوقيت العالمي الحقيقي.
+    نستخدمه فقط للمقارنة بين الآن وموعد الصلاة داخل نفس المنطقة الزمنية. */
+ return new Date(Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second));
 }
 
 function parsePrayerTime(timeStr,timeZone){
- const [h,m]=timeStr.slice(0,5).split(':').map(Number);
- const d=getClockDate(timeZone);
- d.setHours(h,m,0,0);
- return d;
+ const match=String(timeStr).match(/^(\d{1,2}):(\d{2})/);
+ if(!match) return null;
+ const h=Number(match[1]);
+ const m=Number(match[2]);
+ const now=getZonedParts(timeZone);
+ return new Date(Date.UTC(now.year,now.month-1,now.day,h,m,0));
+}
+
+function formatPrayerTime(timeStr){
+ const match=String(timeStr).match(/^(\d{1,2}):(\d{2})/);
+ if(!match) return String(timeStr);
+ const h=Number(match[1]);
+ const m=Number(match[2]);
+ return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 
 async function loadPrayerTimes(lat,lon,cityLabel){
@@ -413,19 +444,45 @@ async function loadPrayerTimes(lat,lon,cityLabel){
  document.getElementById('countdown').textContent='جاري حساب الصلاة القادمة...';
  document.getElementById('prayer-grid').innerHTML='<div class="loading">جاري تحميل المواقيت...</div>';
 
- try{
-  const url=new URL(API);
-  url.searchParams.set('latitude',lat);
-  url.searchParams.set('longitude',lon);
-  url.searchParams.set('method','4');
+try {
+  const url = new URL(API);
 
-  const response=await fetch(url,{headers:{Accept:'application/json'}});
-  if(!response.ok) throw new Error(`Prayer API HTTP ${response.status}`);
-  const data=await response.json();
+  url.searchParams.set('latitude', lat);
+  url.searchParams.set('longitude', lon);
+  url.searchParams.set('method', '3');
+  url.searchParams.set('school', '0');
+  url.searchParams.set('tune', '0,0,0,0,0,0,0,0,0');
+
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json' }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Prayer API HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
 
   if(data.code!==200 || !data.data?.timings) throw new Error('Invalid prayer API response');
 
   const t=data.data.timings;
+
+  // تعديل الأوقات بالدقائق لمطابقة التطبيق المرجعي
+function adjustTime(time, minutes) {
+  const [h, m] = time.split(':').map(Number);
+  const date = new Date(2000, 0, 1, h, m);
+  date.setMinutes(date.getMinutes() + minutes);
+
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+t.Fajr    = adjustTime(t.Fajr, 5);
+t.Sunrise = adjustTime(t.Sunrise, 5);
+t.Dhuhr   = adjustTime(t.Dhuhr, 5);
+t.Asr     = adjustTime(t.Asr, 4);
+t.Maghrib = adjustTime(t.Maghrib, 8);
+t.Isha    = adjustTime(t.Isha, 6);
+
   const hijri=data.data.date?.hijri;
   currentTimeZone=data.data.meta?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -441,8 +498,9 @@ async function loadPrayerTimes(lat,lon,cityLabel){
 
   PRAYER_ORDER.forEach(key=>{
    if(!t[key]) return;
-   const timeStr=String(t[key]).slice(0,5);
+   const timeStr=formatPrayerTime(t[key]);
    const prayerDate=parsePrayerTime(timeStr,currentTimeZone);
+   if(!prayerDate) return;
    const card=document.createElement('div');
    card.className='prayer-card';
 
@@ -528,7 +586,6 @@ async function searchCity(){
   url.searchParams.set('q',city);
   url.searchParams.set('format','jsonv2');
   url.searchParams.set('limit','1');
-  url.searchParams.set('countrycodes','dz');
   url.searchParams.set('accept-language','ar');
 
   const response=await fetch(url,{headers:{Accept:'application/json'}});
