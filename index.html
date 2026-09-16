@@ -476,12 +476,12 @@ function adjustTime(time, minutes) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-t.Fajr    = adjustTime(t.Fajr, 5);
-t.Sunrise = adjustTime(t.Sunrise, 5);
-t.Dhuhr   = adjustTime(t.Dhuhr, 5);
-t.Asr     = adjustTime(t.Asr, 4);
-t.Maghrib = adjustTime(t.Maghrib, 8);
-t.Isha    = adjustTime(t.Isha, 6);
+t.Fajr    = adjustTime(t.Fajr, 0);
+t.Sunrise = adjustTime(t.Sunrise, 0);
+t.Dhuhr   = adjustTime(t.Dhuhr, 0);
+t.Asr     = adjustTime(t.Asr, );
+t.Maghrib = adjustTime(t.Maghrib, 0);
+t.Isha    = adjustTime(t.Isha, 0);
 
   const hijri=data.data.date?.hijri;
   currentTimeZone=data.data.meta?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
