@@ -231,9 +231,9 @@ body[data-theme="dark"] .settings-box input{
     <div class="setting-row">
       <label for="reader-select">صوت الأذان / القارئ</label>
       <select id="reader-select">
-        <option value="default">الصوت الافتراضي</option>
-        <option value="muezzin1">القارئ 1</option>
-        <option value="muezzin2">القارئ 2</option>
+        <option value="default">الأذان المصري</option>
+        <option value="muezzin1">أذان الحرم المكي</option>
+        <option value="muezzin2">أذان الحرم المدني</option>
       </select>
       <div class="settings-note">ملفات الأذان المستخدمة: adhan-madina.mp3 و adhan-makkah.mp3 و adhan-egypt.mp3 داخل مجلد <b>audio</b>.</div>
     </div>
@@ -466,6 +466,7 @@ try {
   if(data.code!==200 || !data.data?.timings) throw new Error('Invalid prayer API response');
 
   const t=data.data.timings;
+  localStorage.setItem('lastPrayerTimes', JSON.stringify({t, hijri: data.data.date?.hijri, timezone: data.data.meta?.timezone, cityLabel, savedAt: Date.now()}));
 
   // تعديل الأوقات بالدقائق لمطابقة التطبيق المرجعي
 function adjustTime(time, minutes) {
@@ -520,10 +521,50 @@ t.Isha    = adjustTime(t.Isha, 0);
 
   if(nextPrayer) startCountdown(nextPrayer);
   else document.getElementById('countdown').textContent='انتهت صلوات اليوم، بانتظار فجر الغد 🌙';
- }catch(error){
+  }catch(error){
   console.error(error);
-  document.getElementById('prayer-grid').innerHTML='<div class="error">تعذر تحميل المواقيت. تحقق من الاتصال بالإنترنت ثم حاول مرة أخرى.</div>';
-  document.getElementById('countdown').textContent='';
+  const saved=localStorage.getItem('lastPrayerTimes');
+  if(saved){
+   try{
+    const cached=JSON.parse(saved);
+    const t=cached.t;
+    currentTimeZone=cached.timezone||Intl.DateTimeFormat().resolvedOptions().timeZone;
+    document.getElementById('location-info').textContent=cached.cityLabel+' (بيانات محفوظة، غير محدّثة)';
+    if(cached.hijri){
+     document.getElementById('hijri-date').textContent=`${cached.hijri.day} ${cached.hijri.month?.ar||''} ${cached.hijri.year} هـ`;
+    }
+    const grid=document.getElementById('prayer-grid');
+    grid.innerHTML='';
+    const now=getClockDate(currentTimeZone);
+    let nextPrayer=null;
+    PRAYER_ORDER.forEach(key=>{
+     if(!t[key]) return;
+     const timeStr=formatPrayerTime(t[key]);
+     const prayerDate=parsePrayerTime(timeStr,currentTimeZone);
+     if(!prayerDate) return;
+     const card=document.createElement('div');
+     card.className='prayer-card';
+     const h3=document.createElement('h3');
+     h3.textContent=prayerNames[key];
+     const time=document.createElement('div');
+     time.className='time';
+     time.textContent=timeStr;
+     card.append(h3,time);
+     if(!nextPrayer && prayerDate>now && key!=='Sunrise'){
+      nextPrayer={name:prayerNames[key],date:prayerDate};
+      card.classList.add('next');
+     }
+     grid.appendChild(card);
+    });
+    if(nextPrayer) startCountdown(nextPrayer);
+    else document.getElementById('countdown').textContent='انتهت صلوات اليوم، بانتظار فجر الغد 🌙';
+   }catch(e){
+    document.getElementById('prayer-grid').innerHTML='<div class="error">تعذر تحميل المواقيت ولا توجد بيانات محفوظة.</div>';
+   }
+  }else{
+   document.getElementById('prayer-grid').innerHTML='<div class="error">تعذر تحميل المواقيت. تحقق من الاتصال بالإنترنت ثم حاول مرة أخرى.</div>';
+   document.getElementById('countdown').textContent='';
+  }
  }
 }
 
